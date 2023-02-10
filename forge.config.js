@@ -17,4 +17,15 @@ module.exports = {
       config: {},
     }
   ],
+  publishers: [
+    {
+      name: '@electron-forge/publisher-github',
+      config: {
+        repository: {
+          owner: 'valyasmith',
+          name: 'electron-hackrf-sweep-webusb'
+        }
+      }
+    }
+  ]
 };
