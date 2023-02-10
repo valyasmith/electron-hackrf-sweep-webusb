@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+
+    <title>HackRF Sweep Mode WebUSB</title>
+    <!--  <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:400,500,700,400italic|Material+Icons">-->
+    <link rel="stylesheet" href="../node_modules/vue-material/dist/vue-material.min.css">
+    <link rel="stylesheet" href="../node_modules/vue-material/dist/theme/default.css">
+    <link rel="stylesheet" href="./index.css">
+
+    <script src="hackrf.js"></script>
+    <script src="utils.js"></script>
+    <script src="../node_modules/vue/dist/vue.min.js"></script>
+    <script src="../node_modules/vue-material/dist/vue-material.min.js"></script>
+    <script src="script.js" type="module"></script>
+    <style>
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        .app-loading-container {
+            position: relative;
+        }
+        .app-loading-container .app-loading:before, .app-loading-container .app-loading:after {
+            content: " ";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
+            min-height: 100px;
+            min-width: 50px;
+        }
+        .app-loading-container .app-loading:before {
+            background-color: #ffffff;
+            opacity: 0.5;
+        }
+        .app-loading-container .app-loading.width-progress:before {
+            opacity: 0.7;
+        }
+        .app-loading-container .app-loading:after {
+            background-image: url('./preloader.svg');
+            background-position: center calc(50% - 10px);
+            background-repeat: no-repeat;
+        }
+        .app-loading-container .app-loading span {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            margin-left: 30px;
+            margin-top: -5px;
+        }
+        .app-loading-container .app-loading.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div id="app" class="app-loading-container page-preloader">
+    <app-loading class="app-loading"></app-loading>
+    <div class="actions">
+        <div style="margin-left: -8px">
+            <template v-if="!connected">
+                <md-button class="md-raised md-primary" v-on:click="connect" v-if="!connected">connect</md-button>
+            </template>
+            <template v-if="connected">
+                <md-button class="md-raised md-primary" v-on:click="start" v-if="!running">start</md-button>
+                <md-button class="md-raised" v-on:click="stop" v-if="running">stop</md-button>
+                <md-button class="" v-on:click="disconnect" v-if="connected">disconnect</md-button>
+            </template>
+            <div class="md-caption" style="margin: 0 8px">{{ metrics.sweepPerSec.toFixed(1) }} sweep/sec
+                {{ (metrics.bytesPerSec / 1e6).toFixed(1) }} MB/sec
+            </div>
+        </div>
+        <div class="form">
+            <md-field>
+                <label>Start Frequency</label>
+                <md-input v-model="range.start" type="number" step="1" min="1" max="6000" required
+                          :disabled="running"></md-input>
+                <span class="md-suffix">MHz</span>
+            </md-field>
+            <md-field>
+                <label>End Frequency</label>
+                <md-input v-model="range.stop" type="number" step="1" min="1" max="6000" required
+                          :disabled="running"></md-input>
+                <span class="md-suffix">MHz</span>
+            </md-field>
+            <md-field>
+                <label>FFT Size</label>
+                <!--
+                <md-input v-model="range.fftSize" type="number" step="1" required :disabled="running"></md-input>
+                -->
+                <md-select v-model="range.fftSize">
+                    <md-option value="8">8</md-option>
+                    <md-option value="16">16</md-option>
+                    <md-option value="32">32</md-option>
+                    <md-option value="64">64</md-option>
+                    <md-option value="128">128</md-option>
+                    <md-option value="256">256</md-option>
+                    <md-option value="512">512</md-option>
+                    <md-option value="1024">1024</md-option>
+                    <md-option value="2048">2048</md-option>
+                    <md-option value="4096">4096</md-option>
+                    <md-option value="8192">8192</md-option>
+                </md-select>
+            </md-field>
+            <md-divider></md-divider>
+            <md-field>
+                <label>LNA Gain (IF)</label>
+                <md-input v-model="options.lnaGain" type="number" step="8" max="40" min="0" required></md-input>
+                <span class="md-suffix">dB</span>
+            </md-field>
+            <md-field>
+                <label>VGA Gain (Baseband)</label>
+                <md-input v-model="options.vgaGain" type="number" step="2" max="62" min="0" required></md-input>
+                <span class="md-suffix">dB</span>
+            </md-field>
+            <md-checkbox v-model="options.ampEnabled">RF Amp (14dB)</md-checkbox>
+            <md-checkbox v-model="options.antennaEnabled">Antenna Port Power</md-checkbox>
+        </div>
+        <span class="md-body-2">
+					{{ info.boardName }} (id:{{ info.boardId }})<br>
+					{{ info.firmwareVersion }}
+				</span>
+        <div v-on:click="showInfo=true">
+            <md-icon>info</md-icon>
+        </div>
+
+        <md-snackbar :md-active.sync="snackbar.show" md-persistent>
+            {{ snackbar.message }}
+        </md-snackbar>
+        <md-dialog-alert :md-active.sync="alert.show" :md-title="alert.title"
+                         :md-content="alert.content"></md-dialog-alert>
+
+        <md-dialog :md-active.sync="showInfo">
+            <md-dialog-title>About</md-dialog-title>
+            <md-dialog-content>
+                <p>HackRF Sweep WebUSB</p>
+                <p>Repo: <a href="https://github.com/cho45/hackrf-sweep-webusb">github.com/cho45/hackrf-sweep-webusb</a>
+                </p>
+                <p>Author: <a href="https://www.lowreal.net">cho45 &lt;cho45@lowreal.net&gt;</a></p>
+                <span class="md-subheading">Links</span>
+                <ul>
+                    <li><a href="https://greatscottgadgets.com/hackrf/">HackRF</a> (<a
+                            href="https://github.com/mossmann/hackrf/">github</a>)
+                    </li>
+                </ul>
+            </md-dialog-content>
+            <md-dialog-actions>
+                <md-button class="md-primary" @click="showInfo = false">Close</md-button>
+            </md-dialog-actions>
+        </md-dialog>
+    </div>
+    <div class="canvas-container">
+        <div style="width: 100%; height: 70vh; position: relative">
+            <canvas id="waterfall" ref="waterfall"></canvas>
+        </div>
+        <div style="width: 100%; height: 30vh; position: relative">
+            <canvas id="fft" ref="fft"></canvas>
+            <div class="axis" style="left: 0% ">{{ labelFor(0) }}</div>
+            <div class="axis" style="left: 25% ">{{ labelFor(0.25) }}</div>
+            <div class="axis" style="left: 50% ">{{ labelFor(0.5) }}</div>
+            <div class="axis" style="left: 75%">{{ labelFor(0.75) }}</div>
+            <div class="axis right" style="right: 0%">{{ labelFor(1) }}</div>
+            <div class="axis" ref="currentHover" style="top: 20px; left: 75%">{{ currentHover }}</div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
