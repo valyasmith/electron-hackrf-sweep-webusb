@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 
     <title>HackRF Sweep Mode WebUSB</title>
-    <!--  <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:400,500,700,400italic|Material+Icons">-->
     <link rel="stylesheet" href="../node_modules/vue-material/dist/vue-material.min.css">
     <link rel="stylesheet" href="../node_modules/vue-material/dist/theme/default.css">
     <link rel="stylesheet" href="./index.css">
@@ -14,7 +13,7 @@
     <script src="utils.js"></script>
     <script src="../node_modules/vue/dist/vue.min.js"></script>
     <script src="../node_modules/vue-material/dist/vue-material.min.js"></script>
-    <script src="script.js" type="module"></script>
+    <script src="main.js" type="module"></script>
     <style>
         ::-webkit-scrollbar {
             display: none;
@@ -121,9 +120,15 @@
             <md-checkbox v-model="options.antennaEnabled">Antenna Port Power</md-checkbox>
         </div>
         <span class="md-body-2">
-					{{ info.boardName }} (id:{{ info.boardId }})<br>
-					{{ info.firmwareVersion }}
-				</span>
+            {{ info.boardName }} (id:{{ info.boardId }})<br>
+            {{ info.firmwareVersion }}
+        </span>
+        <md-field v-if="devicesList && devicesList.length > 1">
+            <md-select v-model="options.selectedDeviceNumber" name="selectedDeviceNumber" id="selectedDeviceNumber">
+                <md-option v-for="device in devicesList" :value="device.serialNumber">#{{device.id}}</md-option>
+            </md-select>
+        </md-field>
+
         <div v-on:click="showInfo=true">
             <md-icon>info</md-icon>
         </div>
