@@ -22,6 +22,7 @@ const createWindow = () => {
             submenu: [
                 { role: 'reload' },
                 { role: 'forceReload' },
+                { role: 'toggleDevTools' },
                 { type: 'separator' },
                 { role: 'resetZoom' },
                 { role: 'zoomIn' },
@@ -67,32 +68,34 @@ const createWindow = () => {
     mainWindow.maximize();
     mainWindow.show();
 
-    mainWindow.webContents.session.on('select-usb-device', (event, portList, webContents, callback) => {
-        // console.log('select-usb-device', event, portList, webContents)
-
-        //Add listeners to handle ports being added or removed before the callback for `select-serial-port`
-        //is called.
-        mainWindow.webContents.session.on('usb-device-added', (event, port) => {
-            // console.log('usb-device-added FIRED WITH', event, port)
-            //Optionally update portList to add the new port
-        })
-
-        mainWindow.webContents.session.on('usb-device-removed', (event, port) => {
-            // console.log('usb-device-removed FIRED WITH', event, port)
-            //Optionally update portList to remove the port
-        })
-
-        event.preventDefault();
-        if (callback) {
-            if (portList && portList.length > 0) {
-                callback(portList[0].portId)
-            } else {
-                callback('') //Could not find any matching devices
-            }
-        }
-    })
+    // mainWindow.webContents.session.on('select-usb-device', (event, portList, webContents, callback) => {
+    //     // console.log('select-usb-device', event, portList, webContents)
+    //
+    //     //Add listeners to handle ports being added or removed before the callback for `select-serial-port`
+    //     //is called.
+    //     mainWindow.webContents.session.on('usb-device-added', (event, port) => {
+    //         // console.log('usb-device-added FIRED WITH', event, port)
+    //         //Optionally update portList to add the new port
+    //     })
+    //
+    //     mainWindow.webContents.session.on('usb-device-removed', (event, port) => {
+    //         // console.log('usb-device-removed FIRED WITH', event, port)
+    //         //Optionally update portList to remove the port
+    //     })
+    //
+    //     event.preventDefault();
+    //     if (callback) {
+    //         console.log('portList', portList);
+    //         if (portList && portList.length > 0) {
+    //             callback(portList[0].portId)
+    //         } else {
+    //             callback('') //Could not find any matching devices
+    //         }
+    //     }
+    // })
 
     mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+        // console.log('setPermissionCheckHandler', details);
         if (permission === 'usb') {
             //   // Add logic here to determine if permission should be given to allow USB selection
             return true
@@ -108,10 +111,10 @@ const createWindow = () => {
     ];
 
     mainWindow.webContents.session.setDevicePermissionHandler((details) => {
+        // console.log('setDevicePermissionHandler', details);
         const filteredDevice = deviceFilters.find(df => {
            return details.device.vendorId === df.vendorId && details.device.productId === df.productId;
         });
-        console.log('filteredDevice', filteredDevice);
         return !!filteredDevice;
     })
 
