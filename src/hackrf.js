@@ -82,6 +82,7 @@ class HackRF {
 	static HACKRF_TRANSCEIVER_MODE_TRANSMIT = 2;
 	static HACKRF_TRANSCEIVER_MODE_SS = 3;
 	static TRANSCEIVER_MODE_CPLD_UPDATE = 4;
+	static TRANSCEIVER_MODE_RX_SWEEP = 5;
 	static HACKRF_HW_SYNC_MODE_OFF = 0;
 	static HACKRF_HW_SYNC_MODE_ON = 1;
 
@@ -389,7 +390,7 @@ class HackRF {
 			throw "already started";
 		}
 
-		await this.setTransceiverMode(HackRF.HACKRF_TRANSCEIVER_MODE_RECEIVE);
+		await this.setTransceiverMode(HackRF.TRANSCEIVER_MODE_RX_SWEEP);
 		const transfer = async (resolve) => {
 			const result = await this.device.transferIn(1, HackRF.TRANSFER_BUFFER_SIZE);
 			if (this.rxRunning) {
