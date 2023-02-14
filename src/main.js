@@ -50,6 +50,7 @@ new Vue({
             fftSize: 256
         },
         options: {
+            selectedDeviceNumber: '',
             ampEnabled: false,
             antennaEnabled: false,
             lnaGain: 16,
@@ -66,17 +67,31 @@ new Vue({
             sweepPerSec: 0,
             bytesPerSec: 0,
         },
-
+        devicesList: [],
         currentHover: "",
         showInfo: false
     },
 
     methods: {
         connect: async function () {
+            this.alert.show = false;
             this.snackbar.show = true;
             this.snackbar.message = "connecting";
 
-            if (!await this.backend.open()) {
+            let opts = null;
+            if (this.options && this.options.selectedDeviceNumber) {
+                const found = this.devicesList.find(d => d.selectedDeviceNumber === this.options.selectedDeviceNumber);
+                if (found) {
+                    opts = {
+                        serialNumber: this.options.selectedDeviceNumber
+                    };
+                } else {
+                    this.options.selectedDeviceNumber = '';
+                    this.saveSetting();
+                }
+            }
+            console.log('opts', opts);
+            if (!await this.backend.open(opts)) {
                 const device = await HackRF.requestDevice();
                 if (!device) {
                     this.snackbar.message = "device is not found";
@@ -120,6 +135,7 @@ new Vue({
         start: async function () {
             if (this.running) return;
             this.running = false;
+            this.alert.show = false;
 
             const {canvasFft, canvasWf} = this;
 
@@ -161,6 +177,8 @@ new Vue({
 
             const ctxFft = canvasFft.getContext('2d');
 
+            setTimeout(this.checkMetrics.bind(this), 10000);
+
             await this.backend.start({
                 FFT_SIZE,
                 SAMPLE_RATE,
@@ -195,6 +213,18 @@ new Vue({
             }));
 
             this.running = true;
+        },
+
+        checkMetrics: async function () {
+            if(!this.running) {
+                return;
+            }
+            console.log('this.checkMetrics', this.metrics.bytesPerSec, this.metrics.sweepPerSec);
+            if (!this.metrics || !this.metrics.bytesPerSec || !this.metrics.sweepPerSec) {
+                this.alert.content = "failed to read stream from device";
+                this.alert.show = true;
+                await this.stop();
+            }
         },
 
         stop: async function () {
@@ -237,6 +267,7 @@ new Vue({
 
         this.backend = await new Backend();
         await this.backend.init();
+        this.devicesList = await this.backend.getDevicesList();
 
         this.$watch('options.ampEnabled', async (val) => {
             if (!this.connected) return;
@@ -257,6 +288,11 @@ new Vue({
             if (!this.connected) return;
             await this.backend.setVgaGain(+val);
         });
+        this.$watch('options.selectedDeviceNumber', async (val) => {
+            console.log('selectedDeviceNumber', val);
+            await this.disconnect();
+            await this.connect();
+        });
 
         this.$watch('range', () => {
             this.saveSetting();
@@ -273,8 +309,7 @@ new Vue({
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX - rect.x;
             const p = x / rect.width;
-            const label = this.labelFor(p);
-            this.currentHover = label;
+            this.currentHover = this.labelFor(p);
             this.$refs.currentHover.style.left = (p * 100) + "%";
         };
 
@@ -288,6 +323,8 @@ new Vue({
         this.$refs.fft.addEventListener('mouseleave', leaveListener);
 
         this.connect();
+
+        window.addEventListener('beforeunload', this.disconnect.bind(this));
     },
 
     mounted: function () {
