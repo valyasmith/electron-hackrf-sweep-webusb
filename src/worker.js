@@ -140,7 +140,7 @@ class Worker {
             const now = performance.now();
             const duration = now - prevTime;
             // console.log('data', data.toString());
-            console.log('readBytes', readBytes, 'duration', duration, 'HackRF.BYTES_PER_BLOCK', HackRF.BYTES_PER_BLOCK);
+            // console.log('readBytes', readBytes, 'duration', duration, 'HackRF.BYTES_PER_BLOCK', HackRF.BYTES_PER_BLOCK);
             if (duration > 1000) {
                 bytesPerSec = readBytes / (duration / 1000);
                 prevTime = now;
