@@ -53,3 +53,11 @@ body {
 .axis.right {
   border-width: 0 2px 0 0;
 }
+
+.md-button {
+    min-width: 80px;
+}
+
+.actions .md-raised.md-primary {
+	margin-left: 0;
+}

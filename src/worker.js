@@ -44,9 +44,11 @@ class Worker {
         let i = 0;
         for (const device of this.devices) {
             // console.log('init device', device);
+			const id = i++;
             this.devicesList.push({
                 serialNumber: device.serialNumber,
-                id: i++,
+                title: `#${id} ...${device.serialNumber.substring(16)}`,
+                id: id,
             });
         }
     }

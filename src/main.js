@@ -80,8 +80,10 @@ new Vue({
 
             let opts = null;
             if (this.options && this.options.selectedDeviceNumber) {
-                const found = this.devicesList.find(d => d.selectedDeviceNumber === this.options.selectedDeviceNumber);
-                if (found) {
+				const selectedDeviceNumber = this.options.selectedDeviceNumber;
+                const found = this.devicesList.find(d => d.serialNumber === selectedDeviceNumber);
+				console.log('found', found);
+				if (found) {
                     opts = {
                         serialNumber: this.options.selectedDeviceNumber
                     };
@@ -126,6 +128,7 @@ new Vue({
         },
 
         disconnect: async function () {
+			await this.stop();
             await this.backend.close();
             console.log('disconnected');
             this.connected = false;

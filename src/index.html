@@ -60,13 +60,13 @@
 <div id="app" class="app-loading-container page-preloader">
     <app-loading class="app-loading"></app-loading>
     <div class="actions">
-        <div style="margin-left: -8px">
+        <div>
             <template v-if="!connected">
                 <md-button class="md-raised md-primary" v-on:click="connect" v-if="!connected">connect</md-button>
             </template>
             <template v-if="connected">
                 <md-button class="md-raised md-primary" v-on:click="start" v-if="!running">start</md-button>
-                <md-button class="md-raised" v-on:click="stop" v-if="running">stop</md-button>
+                <md-button class="md-raised md-primary" v-on:click="stop" v-if="running">stop</md-button>
                 <md-button class="" v-on:click="disconnect" v-if="connected">disconnect</md-button>
             </template>
             <div class="md-caption" style="margin: 0 8px">{{ metrics.sweepPerSec.toFixed(1) }} sweep/sec
@@ -125,7 +125,7 @@
         </span>
         <md-field v-if="devicesList && devicesList.length > 1">
             <md-select v-model="options.selectedDeviceNumber" name="selectedDeviceNumber" id="selectedDeviceNumber">
-                <md-option v-for="device in devicesList" :value="device.serialNumber">#{{device.id}}</md-option>
+                <md-option v-for="device in devicesList" :value="device.serialNumber">{{device.title}}</md-option>
             </md-select>
         </md-field>
 
