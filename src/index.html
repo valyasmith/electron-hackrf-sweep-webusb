@@ -118,6 +118,13 @@
             </md-field>
             <md-checkbox v-model="options.ampEnabled">RF Amp (14dB)</md-checkbox>
             <md-checkbox v-model="options.antennaEnabled">Antenna Port Power</md-checkbox>
+
+            <md-checkbox v-model="options.useThreshold">Use threshold</md-checkbox>
+            <md-field v-if="options.useThreshold">
+                <label>Threshold</label>
+                <md-input v-model="options.threshold" type="number" step="1" max="0" min="-100"></md-input>
+                <span class="md-suffix">dB</span>
+            </md-field>
         </div>
         <span class="md-body-2">
             {{ info.boardName }} (id:{{ info.boardId }})<br>
@@ -164,9 +171,9 @@
         </div>
         <div style="width: 100%; height: 30vh; position: relative">
             <canvas id="fft" ref="fft"></canvas>
-            <div class="axis" style="left: 0% ">{{ labelFor(0) }}</div>
-            <div class="axis" style="left: 25% ">{{ labelFor(0.25) }}</div>
-            <div class="axis" style="left: 50% ">{{ labelFor(0.5) }}</div>
+            <div class="axis" style="left: 0%">{{ labelFor(0) }}</div>
+            <div class="axis" style="left: 25%">{{ labelFor(0.25) }}</div>
+            <div class="axis" style="left: 50%">{{ labelFor(0.5) }}</div>
             <div class="axis" style="left: 75%">{{ labelFor(0.75) }}</div>
             <div class="axis right" style="right: 0%">{{ labelFor(1) }}</div>
             <div class="axis" ref="currentHover" style="top: 20px; left: 75%">{{ currentHover }}</div>

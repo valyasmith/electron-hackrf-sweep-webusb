@@ -54,7 +54,9 @@ new Vue({
             ampEnabled: false,
             antennaEnabled: false,
             lnaGain: 16,
-            vgaGain: 16
+            vgaGain: 16,
+            threshold: -40,
+            useThreshold: false
         },
         info: {
             serialNumber: "",
@@ -69,7 +71,7 @@ new Vue({
         },
         devicesList: [],
         currentHover: "",
-        showInfo: false
+        showInfo: false,
     },
 
     methods: {
@@ -80,10 +82,10 @@ new Vue({
 
             let opts = null;
             if (this.options && this.options.selectedDeviceNumber) {
-				const selectedDeviceNumber = this.options.selectedDeviceNumber;
+                const selectedDeviceNumber = this.options.selectedDeviceNumber;
                 const found = this.devicesList.find(d => d.serialNumber === selectedDeviceNumber);
-				console.log('found', found);
-				if (found) {
+                console.log('found', found);
+                if (found) {
                     opts = {
                         serialNumber: this.options.selectedDeviceNumber
                     };
@@ -128,7 +130,7 @@ new Vue({
         },
 
         disconnect: async function () {
-			await this.stop();
+            await this.stop();
             await this.backend.close();
             console.log('disconnected');
             this.connected = false;
@@ -189,20 +191,27 @@ new Vue({
                 highFreq,
                 bandwidth,
                 freqBinCount
-            }, Comlink.proxy((data, metrics) => {
+            }, Comlink.proxy((rawData, metrics) => {
                 this.metrics = metrics;
                 requestAnimationFrame(() => {
-                    /*
-                    const max = Math.max(...data);
-                    const min = Math.min(...data);
-                    console.log({max,min});
-                    */
+                    const canvasThreshold = -1 * Math.ceil(canvasFft.height * this.options.threshold / 100);
+
+                    // const max = Math.max(...data);
+                    // const min = Math.min(...data);
+                    // console.log({max, min});
+
+                    const data = this.options.useThreshold ? rawData.map((i) => {
+                        return i > this.options.threshold ? i : -120;
+                    }) : rawData;
+
+                    // console.log('data', data);
 
                     waterfall.renderLine(data);
 
                     ctxFft.fillStyle = "rgba(0, 0, 0, 0.1)";
                     ctxFft.fillRect(0, 0, canvasFft.width, canvasFft.height);
                     ctxFft.save();
+
                     ctxFft.beginPath();
                     ctxFft.moveTo(0, canvasFft.height);
                     for (let i = 0; i < freqBinCount; i++) {
@@ -212,6 +221,19 @@ new Vue({
                     ctxFft.strokeStyle = "#fff";
                     ctxFft.stroke();
                     ctxFft.restore();
+
+                    if (this.options.useThreshold) {
+                        ctxFft.beginPath();
+                        ctxFft.moveTo(0, canvasThreshold);
+                        ctxFft.lineTo(canvasFft.width, canvasThreshold);
+                        ctxFft.strokeStyle = "#ff0000";
+                        ctxFft.stroke();
+                        ctxFft.restore();
+
+                        ctxFft.fillStyle = "rgba(0, 0, 0, 0.9)";
+                        ctxFft.fillRect(0, canvasThreshold, canvasFft.width, canvasFft.height);
+                        ctxFft.save();
+                    }
                 });
             }));
 
@@ -219,7 +241,7 @@ new Vue({
         },
 
         checkMetrics: async function () {
-            if(!this.running) {
+            if (!this.running) {
                 return;
             }
             console.log('this.checkMetrics', this.metrics.bytesPerSec, this.metrics.sweepPerSec);
