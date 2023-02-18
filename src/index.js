@@ -1,4 +1,4 @@
-const {app, BrowserWindow, Menu} = require('electron');
+const {app, BrowserWindow, Menu, MenuItem, screen} = require('electron');
 const path = require('path');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -13,47 +13,52 @@ const createWindow = () => {
         {
             label: 'File',
             submenu: [
-                isMac ? { role: 'close' } : { role: 'quit' }
+                isMac ? {role: 'close'} : {role: 'quit'}
             ]
         },
         // { role: 'viewMenu' }
         {
+            id: 'view',
             label: 'View',
             submenu: [
-                { role: 'reload' },
-                { role: 'forceReload' },
-                { role: 'toggleDevTools' },
-                { type: 'separator' },
-                { role: 'resetZoom' },
-                { role: 'zoomIn' },
-                { role: 'zoomOut' },
-                { type: 'separator' },
-                { role: 'togglefullscreen' }
+                {role: 'reload'},
+                {role: 'forceReload'},
+                {role: 'toggleDevTools'},
+                {type: 'separator'},
+                {role: 'resetZoom'},
+                {role: 'zoomIn'},
+                {role: 'zoomOut'},
+                {type: 'separator'},
+                {role: 'togglefullscreen'}
             ]
         },
         // { role: 'windowMenu' }
         {
             label: 'Window',
             submenu: [
-                { role: 'minimize' },
-                { role: 'zoom' },
+                {role: 'minimize'},
+                {role: 'zoom'},
                 ...(isMac ? [
-                    { type: 'separator' },
-                    { role: 'front' },
-                    { type: 'separator' },
-                    { role: 'window' }
+                    {type: 'separator'},
+                    {role: 'front'},
+                    {type: 'separator'},
+                    {role: 'window'}
                 ] : [
-                    { role: 'close' }
+                    {role: 'close'}
                 ])
             ]
         }
     ];
 
-    const menu = Menu.buildFromTemplate(template)
-    Menu.setApplicationMenu(menu)
-
+const windowWidth = 800;
+const windowHeight=600;
     // Create the browser window.
     const mainWindow = new BrowserWindow({
+
+        minWidth: windowWidth,
+        minHeight: windowHeight,
+        width: windowWidth,
+        height: windowHeight,
         // width: 800,
         // height: 600,
         webPreferences: {
@@ -67,6 +72,18 @@ const createWindow = () => {
     });
     mainWindow.maximize();
     mainWindow.show();
+
+    const menu = Menu.buildFromTemplate(template)
+    menu.getMenuItemById('view').submenu.insert(5, new MenuItem({
+        label: 'Half Size',
+        click: function () {
+            mainWindow.unmaximize();
+            mainWindow.setPosition(0, 0);
+            mainWindow.setSize(Math.ceil(screen.getPrimaryDisplay().size.width / 2), screen.getPrimaryDisplay().size.height, true);
+        }
+    }));
+
+    Menu.setApplicationMenu(menu)
 
     // mainWindow.webContents.session.on('select-usb-device', (event, portList, webContents, callback) => {
     //     // console.log('select-usb-device', event, portList, webContents)
@@ -104,16 +121,16 @@ const createWindow = () => {
     });
 
     const deviceFilters = [
-        { vendorId: 0x1d50, productId: 0x604b },
-        { vendorId: 0x1d50, productId: 0x6089 },
-        { vendorId: 0x1d50, productId: 0xcc15 },
-        { vendorId: 0x1fc9, productId: 0x000c },
+        {vendorId: 0x1d50, productId: 0x604b},
+        {vendorId: 0x1d50, productId: 0x6089},
+        {vendorId: 0x1d50, productId: 0xcc15},
+        {vendorId: 0x1fc9, productId: 0x000c},
     ];
 
     mainWindow.webContents.session.setDevicePermissionHandler((details) => {
         // console.log('setDevicePermissionHandler', details);
         const filteredDevice = deviceFilters.find(df => {
-           return details.device.vendorId === df.vendorId && details.device.productId === df.productId;
+            return details.device.vendorId === df.vendorId && details.device.productId === df.productId;
         });
         return !!filteredDevice;
     })

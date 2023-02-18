@@ -59,103 +59,150 @@
 <body>
 <div id="app" class="app-loading-container page-preloader">
     <app-loading class="app-loading"></app-loading>
-    <div class="actions">
+    <div class="sidebar" :class="{closed: options.hideSideBar}">
         <div>
-            <template v-if="!connected">
-                <md-button class="md-raised md-primary" v-on:click="connect" v-if="!connected">connect</md-button>
-            </template>
+            <md-button class="md-icon-button" title="Show sidebar" v-on:click="toggleSidebar()" v-if="options.hideSideBar">
+                <svg>
+                    <use xlink:href="#sidebar-icon" href="#sidebar-icon"></use>
+                </svg>
+            </md-button>
+            <div v-if="!options.hideSideBar">
+                <md-button class="md-raised md-icon-button" title="Hide sidebar" v-on:click="toggleSidebar()">
+                    <svg>
+                        <use xlink:href="#hide-sidebar-icon" href="#hide-sidebar-icon"></use>
+                    </svg>
+                </md-button>
+            </div>
+            <md-button title="Connect" class="md-raised md-primary" :class="{'md-icon-button': options.hideSideBar}" v-on:click="connect" v-if="!connected">
+                <span class="title">connect</span>
+                <svg>
+                    <use xlink:href="#connect-icon" href="#connect-icon"></use>
+                </svg>
+            </md-button>
             <template v-if="connected">
-                <md-button class="md-raised md-primary" v-on:click="start" v-if="!running">start</md-button>
-                <md-button class="md-raised md-primary" v-on:click="stop" v-if="running">stop</md-button>
-                <md-button class="" v-on:click="disconnect" v-if="connected">disconnect</md-button>
+                <md-button title="Start" class="md-raised md-primary" :class="{'md-icon-button': options.hideSideBar}" v-on:click="start" v-if="!running">
+                    <span class="title">start</span>
+                    <svg>
+                        <use xlink:href="#start-icon" href="#start-icon"></use>
+                    </svg>
+                </md-button>
+                <md-button title="Stop" class="md-raised md-primary" :class="{'md-icon-button': options.hideSideBar}" v-on:click="stop" v-if="running">
+                    <span class="title">stop</span>
+                    <svg>
+                        <use xlink:href="#stop-icon" href="#stop-icon"></use>
+                    </svg>
+                </md-button>
+                <md-button class="md-raised" title="Disconnect" :class="{'md-icon-button': options.hideSideBar}" v-on:click="disconnect" v-if="connected">
+                    <span class="title">disconnect</span>
+                    <svg>
+                        <use xlink:href="#disconnect-icon" href="#disconnect-icon"></use>
+                    </svg>
+                </md-button>
             </template>
-            <div class="md-caption" style="margin: 0 8px">{{ metrics.sweepPerSec.toFixed(1) }} sweep/sec
+            <div class="md-caption">{{ metrics.sweepPerSec.toFixed(1) }} sweep/sec
                 {{ (metrics.bytesPerSec / 1e6).toFixed(1) }} MB/sec
             </div>
         </div>
-        <div class="form">
-            <md-field>
-                <label>Start Frequency</label>
-                <md-input v-model="range.start" type="number" step="1" min="1" max="6000" required
-                          :disabled="running"></md-input>
-                <span class="md-suffix">MHz</span>
-            </md-field>
-            <md-field>
-                <label>End Frequency</label>
-                <md-input v-model="range.stop" type="number" step="1" min="1" max="6000" required
-                          :disabled="running"></md-input>
-                <span class="md-suffix">MHz</span>
-            </md-field>
-            <md-field>
-                <label>FFT Size</label>
-                <!--
-                <md-input v-model="range.fftSize" type="number" step="1" required :disabled="running"></md-input>
-                -->
-                <md-select v-model="range.fftSize">
-                    <md-option value="8">8</md-option>
-                    <md-option value="16">16</md-option>
-                    <md-option value="32">32</md-option>
-                    <md-option value="64">64</md-option>
-                    <md-option value="128">128</md-option>
-                    <md-option value="256">256</md-option>
-                    <md-option value="512">512</md-option>
-                    <md-option value="1024">1024</md-option>
-                    <md-option value="2048">2048</md-option>
-                    <md-option value="4096">4096</md-option>
-                    <md-option value="8192">8192</md-option>
+        <div class="sidebar-body">
+            <div class="sidebar-form">
+                <md-field>
+                    <label>Start Frequency</label>
+                    <md-input v-model="range.start" type="number" step="1" min="1" max="6000" required
+                              :disabled="running"></md-input>
+                    <span class="md-suffix">MHz</span>
+                </md-field>
+                <md-field>
+                    <label>End Frequency</label>
+                    <md-input v-model="range.stop" type="number" step="1" min="1" max="6000" required
+                              :disabled="running"></md-input>
+                    <span class="md-suffix">MHz</span>
+                </md-field>
+                <md-field>
+                    <label>FFT Size</label>
+                    <!--
+                    <md-input v-model="range.fftSize" type="number" step="1" required :disabled="running"></md-input>
+                    -->
+                    <md-select v-model="range.fftSize">
+                        <md-option value="8">8</md-option>
+                        <md-option value="16">16</md-option>
+                        <md-option value="32">32</md-option>
+                        <md-option value="64">64</md-option>
+                        <md-option value="128">128</md-option>
+                        <md-option value="256">256</md-option>
+                        <md-option value="512">512</md-option>
+                        <md-option value="1024">1024</md-option>
+                        <md-option value="2048">2048</md-option>
+                        <md-option value="4096">4096</md-option>
+                        <md-option value="8192">8192</md-option>
+                    </md-select>
+                </md-field>
+                <md-divider></md-divider>
+                <md-field>
+                    <label>LNA Gain (IF)</label>
+                    <md-input v-model="options.lnaGain" type="number" step="8" max="40" min="0" required></md-input>
+                    <span class="md-suffix">dB</span>
+                </md-field>
+                <md-field>
+                    <label>VGA Gain (Baseband)</label>
+                    <md-input v-model="options.vgaGain" type="number" step="2" max="62" min="0" required></md-input>
+                    <span class="md-suffix">dB</span>
+                </md-field>
+                <md-checkbox v-model="options.ampEnabled">RF Amp (14dB)</md-checkbox>
+                <md-checkbox v-model="options.antennaEnabled">Antenna Port Power</md-checkbox>
+
+                <md-checkbox v-model="options.useRawChart">Show real-time line</md-checkbox>
+                <md-checkbox v-model="options.useCumulativeChart">Show cumulative line</md-checkbox>
+                <md-checkbox v-model="options.useMaxChart">Show max line</md-checkbox>
+
+                <md-checkbox v-model="options.useThreshold">Show threshold</md-checkbox>
+                <md-field v-if="options.useThreshold">
+                    <label>Threshold</label>
+                    <md-input v-model="options.threshold" type="number" step="1" max="-10" min="-100"></md-input>
+                    <span class="md-suffix">dB</span>
+                </md-field>
+                <md-checkbox v-if="options.useThreshold" v-model="options.useAlerts">Show alerts</md-checkbox>
+                <md-field v-if="options.useAlerts">
+                    <label>Sensitivity</label>
+                    <md-input v-model="options.alertSensitivity" type="number" step="1" max="99" min="1"></md-input>
+                    <span class="md-suffix">%</span>
+                </md-field>
+            </div>
+            <span class="md-body-2">
+                {{ info.boardName }} (id:{{ info.boardId }})<br>
+                {{ info.firmwareVersion }}
+            </span>
+            <md-field v-if="devicesList && devicesList.length > 1">
+                <md-select v-model="options.selectedDeviceNumber" name="selectedDeviceNumber" id="selectedDeviceNumber">
+                    <md-option v-for="device in devicesList" :value="device.serialNumber">{{device.title}}</md-option>
                 </md-select>
             </md-field>
-            <md-divider></md-divider>
-            <md-field>
-                <label>LNA Gain (IF)</label>
-                <md-input v-model="options.lnaGain" type="number" step="8" max="40" min="0" required></md-input>
-                <span class="md-suffix">dB</span>
-            </md-field>
-            <md-field>
-                <label>VGA Gain (Baseband)</label>
-                <md-input v-model="options.vgaGain" type="number" step="2" max="62" min="0" required></md-input>
-                <span class="md-suffix">dB</span>
-            </md-field>
-            <md-checkbox v-model="options.ampEnabled">RF Amp (14dB)</md-checkbox>
-            <md-checkbox v-model="options.antennaEnabled">Antenna Port Power</md-checkbox>
 
-            <md-checkbox v-model="options.useThreshold">Use threshold</md-checkbox>
-            <md-field v-if="options.useThreshold">
-                <label>Threshold</label>
-                <md-input v-model="options.threshold" type="number" step="1" max="0" min="-100"></md-input>
-                <span class="md-suffix">dB</span>
-            </md-field>
-        </div>
-        <span class="md-body-2">
-            {{ info.boardName }} (id:{{ info.boardId }})<br>
-            {{ info.firmwareVersion }}
-        </span>
-        <md-field v-if="devicesList && devicesList.length > 1">
-            <md-select v-model="options.selectedDeviceNumber" name="selectedDeviceNumber" id="selectedDeviceNumber">
-                <md-option v-for="device in devicesList" :value="device.serialNumber">{{device.title}}</md-option>
-            </md-select>
-        </md-field>
-
-        <div v-on:click="showInfo=true">
-            <md-icon>info</md-icon>
+            <div v-on:click="showInfo=true">
+                <md-icon>info</md-icon>
+            </div>
         </div>
 
         <md-snackbar :md-active.sync="snackbar.show" md-persistent>
             {{ snackbar.message }}
         </md-snackbar>
-        <md-dialog-alert :md-active.sync="alert.show" :md-title="alert.title"
+        <md-dialog-alert :md-active.sync="alert.show"
+                         :md-title="alert.title"
                          :md-content="alert.content"></md-dialog-alert>
 
         <md-dialog :md-active.sync="showInfo">
             <md-dialog-title>About</md-dialog-title>
             <md-dialog-content>
                 <p>HackRF Sweep WebUSB</p>
-                <p>Repo: <a href="https://github.com/cho45/hackrf-sweep-webusb">github.com/cho45/hackrf-sweep-webusb</a>
+                <p>
+                    Repo: <a href="https://github.com/valyasmith/electron-hackrf-sweep-webusb">github.com/valyasmith/electron-hackrf-sweep-webusb</a>
                 </p>
-                <p>Author: <a href="https://www.lowreal.net">cho45 &lt;cho45@lowreal.net&gt;</a></p>
                 <span class="md-subheading">Links</span>
                 <ul>
-                    <li><a href="https://greatscottgadgets.com/hackrf/">HackRF</a> (<a
+                    <li>
+                        <a href="https://www.lowreal.net">cho45 &lt;cho45@lowreal.net&gt;</a>
+                    </li>
+                    <li>
+                        <a href="https://greatscottgadgets.com/hackrf/">HackRF</a> (<a
                             href="https://github.com/mossmann/hackrf/">github</a>)
                     </li>
                 </ul>
@@ -165,19 +212,45 @@
             </md-dialog-actions>
         </md-dialog>
     </div>
-    <div class="canvas-container">
+    <div class="canvas-container" :class="{'alert': showAlert}">
         <div style="width: 100%; height: 70vh; position: relative">
             <canvas id="waterfall" ref="waterfall"></canvas>
         </div>
         <div style="width: 100%; height: 30vh; position: relative">
             <canvas id="fft" ref="fft"></canvas>
-            <div class="axis" style="left: 0%">{{ labelFor(0) }}</div>
-            <div class="axis" style="left: 25%">{{ labelFor(0.25) }}</div>
-            <div class="axis" style="left: 50%">{{ labelFor(0.5) }}</div>
-            <div class="axis" style="left: 75%">{{ labelFor(0.75) }}</div>
-            <div class="axis right" style="right: 0%">{{ labelFor(1) }}</div>
+            <div class="axis axis-x" style="left: 0%">{{ labelFor(0) }}</div>
+            <div class="axis axis-x" style="left: 25%">{{ labelFor(0.25) }}</div>
+            <div class="axis axis-x" style="left: 50%">{{ labelFor(0.5) }}</div>
+            <div class="axis axis-x" style="left: 75%">{{ labelFor(0.75) }}</div>
+            <div class="axis  axis-x right" style="right: 0%">{{ labelFor(1) }}</div>
+            <div class="axis axis-y" v-for="YScaleItem in canvasFftYScale" :style="{top: YScaleItem.offset}">{{YScaleItem.title}}</div>
             <div class="axis" ref="currentHover" style="top: 20px; left: 75%">{{ currentHover }}</div>
         </div>
+    </div>
+    <div class="hidden">
+        <svg xmlns="http://www.w3.org/2000/svg">
+            <symbol id="connect-icon" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M7 1H6v3H4.5l-.5.5V8a4 4 0 0 0 3.5 3.969V15h1v-3.031A4 4 0 0 0 12 8V4.5l-.5-.5H10V1H9v3H7V1zm3.121 9.121A3 3 0 0 1 5 8V5h6v3a3 3 0 0 1-.879 2.121z"/>
+            </symbol>
+            <symbol id="disconnect-icon" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M13.617 3.844a2.87 2.87 0 0 0-.451-.868l1.354-1.36L13.904 1l-1.36 1.354a2.877 2.877 0 0 0-.868-.452 3.073 3.073 0 0 0-2.14.075 3.03 3.03 0 0 0-.991.664L7 4.192l4.327 4.328 1.552-1.545c.287-.287.508-.618.663-.992a3.074 3.074 0 0 0 .075-2.14zm-.889 1.804a2.15 2.15 0 0 1-.471.705l-.93.93-3.09-3.09.93-.93a2.15 2.15 0 0 1 .704-.472 2.134 2.134 0 0 1 1.689.007c.264.114.494.271.69.472.2.195.358.426.472.69a2.134 2.134 0 0 1 .007 1.688zm-4.824 4.994l1.484-1.545-.616-.622-1.49 1.551-1.86-1.859 1.491-1.552L6.291 6 4.808 7.545l-.616-.615-1.551 1.545a3 3 0 0 0-.663.998 3.023 3.023 0 0 0-.233 1.169c0 .332.05.656.15.97.105.31.258.597.459.862L1 13.834l.615.615 1.36-1.353c.265.2.552.353.862.458.314.1.638.15.97.15.406 0 .796-.077 1.17-.232.378-.155.71-.376.998-.663l1.545-1.552-.616-.615zm-2.262 2.023a2.16 2.16 0 0 1-.834.164c-.301 0-.586-.057-.855-.17a2.278 2.278 0 0 1-.697-.466 2.28 2.28 0 0 1-.465-.697 2.167 2.167 0 0 1-.17-.854 2.16 2.16 0 0 1 .642-1.545l.93-.93 3.09 3.09-.93.93a2.22 2.22 0 0 1-.711.478z"/>
+            </symbol>
+            <symbol id="start-icon" viewBox="0 0 24 24">
+                <path d="M12,1A11,11,0,1,0,23,12,11.013,11.013,0,0,0,12,1Zm0,20a9,9,0,1,1,9-9A9.011,9.011,0,0,1,12,21ZM10,8l6,4-6,4Z"/>
+            </symbol>
+            <symbol id="stop-icon" viewBox="0 0 24 24">
+                <path d="M12,1A11,11,0,1,0,23,12,11.013,11.013,0,0,0,12,1Zm0,20a9,9,0,1,1,9-9A9.011,9.011,0,0,1,12,21ZM9,9h6v6H9Z"/>
+            </symbol>
+            <symbol id="hide-sidebar-icon" viewBox="0 0 24 24">
+                <path d="M1.293,12.707a1,1,0,0,1-.216-.325.986.986,0,0,1,0-.764,1,1,0,0,1,.216-.325l8-8a1,1,0,1,1,1.414,1.414L4.414,11H22a1,1,0,0,1,0,2H4.414l6.293,6.293a1,1,0,0,1-1.414,1.414Z"/>
+            </symbol>
+            <symbol id="sidebar-icon" viewBox="0 0 24 24">
+                <path d="M2,4A1,1,0,0,1,3,3H21a1,1,0,0,1,0,2H3A1,1,0,0,1,2,4Zm1,9H21a1,1,0,0,0,0-2H3a1,1,0,0,0,0,2Zm0,8H21a1,1,0,0,0,0-2H3a1,1,0,0,0,0,2Z"/>
+            </symbol>
+        </svg>
+        <audio id="alertSound" ref="alertSound" preload="auto">
+            <source src="./alert.mp3" type="audio/mpeg">
+        </audio>
     </div>
 </div>
 </body>

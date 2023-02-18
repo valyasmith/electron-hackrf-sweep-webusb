@@ -27,6 +27,11 @@ Vue.use(VueMaterial.default);
 class AppLoading extends Vue {
 }
 
+const CUMULATIVE_STACK_SIZE = 5;
+const MAX_STACK_SIZE = 20;
+const SAMPLE_RATE = 20e6;
+const MAX_ALERT_SENSITIVITY_SAMPLES = 200;
+
 new Vue({
     el: "#app",
     components: {
@@ -49,14 +54,21 @@ new Vue({
             stop: 2500,
             fftSize: 256
         },
+        canvasFftYScale: [],
         options: {
+            hideSideBar: false,
             selectedDeviceNumber: '',
             ampEnabled: false,
             antennaEnabled: false,
             lnaGain: 16,
             vgaGain: 16,
-            threshold: -40,
-            useThreshold: false
+            threshold: -60,
+            alertSensitivity: 50,
+            useThreshold: false,
+            useRawChart: true,
+            useMaxChart: true,
+            useCumulativeChart: false,
+            useAlerts: false
         },
         info: {
             serialNumber: "",
@@ -72,6 +84,8 @@ new Vue({
         devicesList: [],
         currentHover: "",
         showInfo: false,
+        alertTimer: null,
+        showAlert: false,
     },
 
     methods: {
@@ -137,14 +151,30 @@ new Vue({
             this.running = false;
         },
 
+        quadraticMeanVector: function (arrays, size) {
+            const result = Array.from({length: size});
+            return result.map((_, i) => {
+                return -1 * Math.sqrt(arrays
+                    .map(xs => xs[i] || 0)
+                    .reduce((sum, x) => {
+                        return (sum + Math.pow(x, 2));
+                    }, 0) / arrays.length);
+            });
+        },
+
+        maxVector: function (arrays, size) {
+            const result = Array.from({length: size});
+            return result.map((_, i) => {
+                return Math.max(...arrays.map(xs => xs[i] || 0));
+            });
+        },
+
         start: async function () {
             if (this.running) return;
             this.running = false;
             this.alert.show = false;
 
             const {canvasFft, canvasWf} = this;
-
-            const SAMPLE_RATE = 20e6;
 
             const lowFreq = +this.range.start;
             const highFreq0 = +this.range.stop;
@@ -184,6 +214,16 @@ new Vue({
 
             setTimeout(this.checkMetrics.bind(this), 10000);
 
+            const maxStack = [];
+            const cumulativeStack = [];
+            this.canvasFftYScale = [];
+            for (let y = 1; y <= 10; y++) {
+                this.canvasFftYScale.push({
+                    offset: `${y * 10}%`,
+                    title: `${-1 * (y * 10)}dB`
+                });
+            }
+
             await this.backend.start({
                 FFT_SIZE,
                 SAMPLE_RATE,
@@ -194,43 +234,115 @@ new Vue({
             }, Comlink.proxy((rawData, metrics) => {
                 this.metrics = metrics;
                 requestAnimationFrame(() => {
-                    const canvasThreshold = -1 * Math.ceil(canvasFft.height * this.options.threshold / 100);
-
-                    // const max = Math.max(...data);
-                    // const min = Math.min(...data);
-                    // console.log({max, min});
-
                     const data = this.options.useThreshold ? rawData.map((i) => {
                         return i > this.options.threshold ? i : -120;
                     }) : rawData;
-
+                    // const data = rawData
                     // console.log('data', data);
 
                     waterfall.renderLine(data);
 
-                    ctxFft.fillStyle = "rgba(0, 0, 0, 0.1)";
+                    ctxFft.fillStyle = "rgba(40, 40, 40)";
                     ctxFft.fillRect(0, 0, canvasFft.width, canvasFft.height);
                     ctxFft.save();
 
-                    ctxFft.beginPath();
-                    ctxFft.moveTo(0, canvasFft.height);
-                    for (let i = 0; i < freqBinCount; i++) {
-                        const n = (data[i] + 45) / 42;
-                        ctxFft.lineTo(i, canvasFft.height - canvasFft.height * n);
-                    }
-                    ctxFft.strokeStyle = "#fff";
-                    ctxFft.stroke();
-                    ctxFft.restore();
+                    if (this.options.useMaxChart) {
+                        maxStack.push(rawData);
 
-                    if (this.options.useThreshold) {
+                        const maxVector = this.maxVector(maxStack, freqBinCount);
                         ctxFft.beginPath();
-                        ctxFft.moveTo(0, canvasThreshold);
-                        ctxFft.lineTo(canvasFft.width, canvasThreshold);
-                        ctxFft.strokeStyle = "#ff0000";
+                        ctxFft.moveTo(0, canvasFft.height);
+                        for (let i = 0; i < freqBinCount; i++) {
+                            const n = (maxVector[i] + 45) / 42;
+                            ctxFft.lineTo(i, canvasFft.height - canvasFft.height * n);
+                        }
+                        ctxFft.strokeStyle = "#ffc003";
                         ctxFft.stroke();
                         ctxFft.restore();
 
-                        ctxFft.fillStyle = "rgba(0, 0, 0, 0.9)";
+                        if (maxStack.length >= MAX_STACK_SIZE) {
+                            maxStack.shift();
+                        }
+                    }
+
+                    if (this.options.useRawChart) {
+                        ctxFft.beginPath();
+                        ctxFft.moveTo(0, canvasFft.height);
+                        for (let i = 0; i < freqBinCount; i++) {
+                            const n = (data[i] + 45) / 42;
+                            ctxFft.lineTo(i, canvasFft.height - canvasFft.height * n);
+                        }
+                        ctxFft.strokeStyle = "#e1e1e1";
+                        ctxFft.stroke();
+                        ctxFft.restore();
+                    }
+
+                    const thresholdPercent = -1 * (Number(this.options.threshold));
+                    const canvasThreshold = Math.ceil(canvasFft.height * thresholdPercent / 100);
+
+                    let quadraticMeanVector = [];
+                    if (this.options.useCumulativeChart || this.options.useAlerts) {
+                        const alertSensitivity = Math.ceil((100 - this.options.alertSensitivity) * MAX_ALERT_SENSITIVITY_SAMPLES / 100);
+                        cumulativeStack.push(rawData);
+                        quadraticMeanVector = this.quadraticMeanVector(cumulativeStack, freqBinCount);
+                        if (cumulativeStack.length >= CUMULATIVE_STACK_SIZE) {
+                            cumulativeStack.shift();
+                        }
+                        let hasOverflowValues = false;
+                        let tmp = [];
+                        if (this.options.useCumulativeChart) {
+                            ctxFft.beginPath();
+                        }
+                        for (let i = 0; i < freqBinCount; i++) {
+                            const n = (quadraticMeanVector[i] + 45) / 42;
+                            const val = canvasFft.height - canvasFft.height * n;
+                            if (this.options.useCumulativeChart) {
+                                ctxFft.moveTo(i, canvasFft.height);
+                                ctxFft.lineTo(i, val);
+                            }
+                            if (this.options.useAlerts && !hasOverflowValues) {
+                                if (val < canvasThreshold) {
+                                    tmp.push(quadraticMeanVector[i]);
+                                } else {
+                                    tmp = [];
+                                }
+                                if (tmp.length > alertSensitivity) {
+                                    hasOverflowValues = true;
+                                }
+                            }
+                        }
+                        if (this.options.useCumulativeChart) {
+                            ctxFft.strokeStyle = "#00ff00";
+                            ctxFft.stroke();
+                            ctxFft.restore();
+                        }
+                        if (this.options.useAlerts && hasOverflowValues) {
+                            // console.log('alertSensitivity', alertSensitivity, 'tmp', tmp[0], tmp.length);
+                            this.runAlert();
+                        }
+                    }
+
+                    if (this.options.useThreshold) {
+                        // ctxFft.beginPath();
+                        // for (let i = 0; i < freqBinCount; i++) {
+                        //     if(data[i] > -120) {
+                        //         const n = (data[i] + 45) / 42;
+                        //         ctxFft.moveTo(i, canvasFft.height);
+                        //         ctxFft.lineTo(i, canvasFft.height - canvasFft.height * n);
+                        //     }
+                        // }
+                        // ctxFft.strokeStyle = "#ff0000";
+                        // ctxFft.stroke();
+                        // ctxFft.restore();
+
+                        ctxFft.beginPath();
+                        ctxFft.moveTo(0, canvasThreshold);
+                        ctxFft.lineTo(canvasFft.width, canvasThreshold);
+                        ctxFft.strokeStyle = "#f33f33";
+                        ctxFft.stroke();
+                        ctxFft.restore();
+
+                        ctxFft.fillStyle = "rgba(40, 40, 40, 0.85)";
                         ctxFft.fillRect(0, canvasThreshold, canvasFft.width, canvasFft.height);
                         ctxFft.save();
                     }
@@ -238,6 +350,16 @@ new Vue({
             }));
 
             this.running = true;
+        },
+
+        runAlert: function () {
+            this.showAlert = true;
+            if (this.$refs.alertSound && this.$refs.alertSound.play) {
+                this.$refs.alertSound.play();
+            }
+            this.alertTimer = setTimeout(()=>{
+                this.showAlert = false;
+            }, 2000);
         },
 
         checkMetrics: async function () {
@@ -284,6 +406,11 @@ new Vue({
             } catch (e) {
                 console.log(e);
             }
+        },
+
+        toggleSidebar: function () {
+            this.options.hideSideBar = !this.options.hideSideBar;
+            this.saveSetting();
         }
     },
 

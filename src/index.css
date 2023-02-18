@@ -1,63 +1,133 @@
 html, body {
-  margin: 0;
-  padding: 0;
+    margin: 0;
+    padding: 0;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
     Arial, sans-serif;
-  /*margin: auto;*/
-  /*max-width: 38rem;*/
-  /*padding: 2rem;*/
+    /*margin: auto;*/
+    /*max-width: 38rem;*/
+    /*padding: 2rem;*/
 }
 
 #app {
-  display: flex;
+    display: flex;
 }
 
-.actions {
-  padding: 10px;
-  width: 17em;
+.hidden {
+    display: none;
+}
+
+.sidebar {
+    padding: 10px;
+    width: 17em;
+}
+
+.sidebar.closed {
+    width: 50px;
+    padding: 4px;
+}
+
+.sidebar.closed .sidebar-body {
+    display: none;
+}
+
+.sidebar .md-caption {
+    margin: 0 8px;
+}
+
+.sidebar.closed .md-caption {
+    display: none;
+}
+
+.md-button {
+    /*min-width: 80px;*/
+}
+
+.md-button svg {
+    display: none;
+    width: 24px;
+    height: 24px;
+    fill: #c0c0c0;
+}
+
+.md-button.md-icon-button svg {
+    display: block;
+}
+
+.md-button.md-primary svg {
+    fill: #fff;
+}
+
+.sidebar.closed .md-button .title {
+    display: none;
+}
+
+.sidebar.closed .md-button svg {
+    display: block;
+}
+
+.sidebar.closed .md-button {
+    min-width: 42px;
+    margin: 0 0 10px 0;
+    padding: 0;
+}
+
+.sidebar.closed .md-button .md-ripple {
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar .md-raised.md-primary {
+    margin-left: 0;
+}
+
+.md-checkbox {
+    display: flex;
 }
 
 .canvas-container {
-  flex-grow: 1;
-  background: #000;
+    flex-grow: 1;
+    background: #282828;
+    border: 5px solid transparent;
+}
+
+.canvas-container.alert {
+    border: 5px solid #fe7863;
 }
 
 #fft,
 #waterfall {
-  width: 100%;
-  height: 100%;
-}
-
-.form {
-}
-
-.md-checkbox {
-  display: flex;
+    width: 100%;
+    height: 100%;
 }
 
 .axis {
-  position: absolute;
-  top: 0;
-  font-weight: bold;
-  font-size: 16px;
-  color: #fff;
-  border-style: solid;
-  border-width: 0 0 0 2px;
-  border-color: #f33;
-  padding: 0 2px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 16px;
+    color: #fff;
 }
 
-.axis.right {
-  border-width: 0 2px 0 0;
+.axis.axis-x {
+    top: 0;
+    font-weight: bold;
+    border-style: solid;
+    border-width: 0 0 0 2px;
+    border-color: #f33;
+    padding: 0 2px;
 }
 
-.md-button {
-    min-width: 80px;
+.axis.axis-y {
+    font-size: 14px;
+    border-width: 0 0 0 2px;
+    padding: 0 2px;
+    margin-top: -10px;
 }
 
-.actions .md-raised.md-primary {
-	margin-left: 0;
+.axis.axis-x.right {
+    text-align: right;
+    border-width: 0 2px 0 0;
 }
