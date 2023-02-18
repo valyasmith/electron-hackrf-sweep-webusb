@@ -1,7 +1,7 @@
 {
   "name": "electron-hackrf-sweep-webusb",
   "productName": "electron-hackrf-sweep-webusb",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Electron wrap for hackrf-sweep-webusb project",
   "main": "src/index.js",
   "scripts": {
