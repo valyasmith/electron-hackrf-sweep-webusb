@@ -83,6 +83,10 @@ body {
     margin-left: 0;
 }
 
+.hide-sidebar {
+    text-align: right;
+}
+
 .md-checkbox {
     display: flex;
 }
