@@ -20,6 +20,6 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
-      - run: 'gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" /repos/esvit/itfin-frontend/actions/secrets'
+      - run: 'gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" /repos/valyasmith/electron-hackrf-sweep-webusb/actions/secrets'
         env:
           GH_TOKEN: ${{ github.token }}
